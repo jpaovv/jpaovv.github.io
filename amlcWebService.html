@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Transfer Web Service Migration</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        .card-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            padding: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 3rem;
+            max-width: 1200px;
+            width: 90%;
+            position: relative;
+            opacity: 0;
+            transform: translateY(100px) scale(0.9);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            z-index: 2;
+            display: flex;
+            gap: 4rem;
+            align-items: center;
+            isolation: isolate;
+            backdrop-filter: blur(8px);
+        }
+
+        .text-content {
+            flex: 1;
+        }
+
+        .image-container {
+            flex: 1;
+            height: 400px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+
+        .card.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .card.exit {
+            opacity: 0;
+            transform: translateY(-100px) scale(0.9);
+        }
+
+        .card-title {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #2563eb, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+		
+        .card-title2 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #2563eb, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+        }
+
+        .card-content {
+            font-size: 1.25rem;
+            line-height: 1.7;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease 0.2s;
+            color: #475569;
+        }
+
+        .card.visible .card-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .feature-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #2563eb;
+        }
+
+        .card.visible .feature-list li {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .card.visible .feature-list li:nth-child(1) { transition-delay: 0.2s; }
+        .card.visible .feature-list li:nth-child(2) { transition-delay: 0.3s; }
+        .card.visible .feature-list li:nth-child(3) { transition-delay: 0.4s; }
+        .card.visible .feature-list li:nth-child(4) { transition-delay: 0.5s; }
+        .card.visible .feature-list li:nth-child(5) { transition-delay: 0.6s; }
+        .card.visible .feature-list li:nth-child(6) { transition-delay: 0.7s; }
+        .card.visible .feature-list li:nth-child(7) { transition-delay: 0.8s; }
+
+        .highlight {
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        .floating-elements {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .floating-element {
+            position: absolute;
+            font-size: 1.5rem;
+            opacity: 0.15;
+            white-space: nowrap;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #2563eb;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .back-to-top:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .card-title {
+                font-size: 2rem;
+            }
+            .card-content {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-elements"></div>
+    <div class="back-to-top">↑</div>
+    <div class="card-section" id="section-0">
+        <div class="card" data-index="0" style="justify-content: center">
+            <div class="text-content" style="text-align: center">
+                <h1 class="card-title2"><img src="AMLC_Logo-Black 1.png" width="100" height="80">File Transfer Web Service</h1>
+                <div class="card-content">
+                    Modernizing AMLC File Transfer Web Service from SOAP to RESTful
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-section" id="section-1">
+        <div class="card" data-index="1">
+            <div class="text-content">
+                <h2 class="card-title">RESTful Service - Modern Solution</h2>
+                <div class="card-content">
+                    <ul class="feature-list">
+                        <li>Fast and lightweight JSON-based communication</li>
+                        <li>Simple HTTP methods (GET, POST, PUT, DELETE)</li>
+                        <li>Perfect for modern web and mobile apps</li>
+                        <li>Easy integration with modern frameworks</li>
+                        <li>Excellent for microservices</li>
+                        <li>Better performance and scalability</li>
+                        <li>Widely used</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="image-container">
+                <img src="rest.jpg" alt="REST Architecture">
+            </div>
+        </div>
+    </div>
+
+    <div class="card-section" id="section-2">
+        <div class="card" data-index="2">
+            <div class="image-container">
+                <img src="soap.jpg" alt="SOAP Architecture">
+            </div>
+            <div class="text-content">
+                <h2 class="card-title">SOAP Service (Legacy)</h2>
+                <div class="card-content">
+                    <ul class="feature-list">
+                        <li>Complex XML-based protocol</li>
+						<li>Heavy processing overhead</li>
+                        <li>Difficult maintenance</li>
+                        <li>Limited modern support</li>
+                        <li>Poor mobile compatibility</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-section" id="section-3">
+        <div class="card" data-index="3">
+            <div class="text-content">
+                <h2 class="card-title">Key Differences</h2>
+                <div class="card-content">
+                    <ul class="feature-list">
+                        <li>JSON vs XML: REST uses lightweight JSON while SOAP requires complex XML structure</li>
+                        <li>Protocol: REST uses simple HTTP methods, SOAP has strict messaging protocol</li>
+                        <li>Security: Both support SSL/TLS, SOAP has WS-Security, REST has JSON Web Tokens</li>
+                        <li>Performance: REST is generally faster due to less overhead</li>
+                        <li>Flexibility: REST is more flexible with data formats and caching</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="image-container">
+                <img src="restvssoap.jpg" alt="Key Differences">
+            </div>
+        </div>
+    </div>
+
+    <div class="card-section" id="section-4">
+        <div class="card" data-index="4">
+            <div class="image-container">
+                <img src="upg.jpg" alt="Benefits">
+            </div>
+            <div class="text-content">
+                <h2 class="card-title">Benefits of Upgrading</h2>
+                <div class="card-content">
+                    <ul class="feature-list">
+                        <li>Faster response times</li>
+                        <li>Better developer productivity</li>
+                        <li>Simplified maintenance</li>
+                        <li>Future-proof architecture</li>
+                        <li>Cloud-ready solution</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cards = document.querySelectorAll('.card');
+        const sections = document.querySelectorAll('.card-section');
+        let currentIndex = 0;
+
+        // Initialize first card
+        cards[0].classList.add('visible');
+
+        const observerOptions = {
+            root: null,
+            threshold: 0.6,
+            rootMargin: "0px"
+        };
+
+        let lastScrollY = window.scrollY;
+        let currentSectionIndex = 0;
+
+        window.addEventListener('scroll', () => {
+            const currentScrollY = window.scrollY;
+            const isScrollingUp = currentScrollY < lastScrollY;
+            lastScrollY = currentScrollY;
+
+            sections.forEach((section, index) => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= window.innerHeight/2 && rect.bottom >= window.innerHeight/2) {
+                    currentSectionIndex = index;
+                }
+            });
+
+            if (isScrollingUp) {
+                cards.forEach((card, index) => {
+                    if (index <= currentSectionIndex) {
+                        card.classList.add('visible');
+                        if (index === currentSectionIndex) {
+                            card.classList.remove('exit');
+                        } else {
+                            card.classList.add('exit');
+                        }
+                    } else {
+                        card.classList.remove('visible', 'exit');
+                    }
+                });
+            }
+        }, { passive: true });
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const section = entry.target;
+                const card = section.querySelector('.card');
+                const index = parseInt(card.dataset.index);
+
+                if (entry.isIntersecting) {
+                    currentSectionIndex = index;
+                    cards.forEach((otherCard, i) => {
+                        if (i === index) {
+                            otherCard.classList.add('visible');
+                            otherCard.classList.remove('exit');
+                        } else if (i < index) {
+                            otherCard.classList.add('visible', 'exit');
+                        } else {
+                            otherCard.classList.remove('visible', 'exit');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Optional: Add keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' && currentIndex < sections.length - 1) {
+                sections[currentIndex + 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+                sections[currentIndex - 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+
+        // Back to top button functionality
+        const backToTop = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 500) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        });
+
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Create floating background elements
+        const terms = ['REST', 'SOAP', 'HTTP', 'JSON', 'API', 'GET', 'POST', 'PUT', 'DELETE'];
+        const floatingElementsContainers = document.querySelectorAll('.floating-elements');
+        
+        floatingElementsContainers.forEach(container => {
+            for (let i = 0; i < 15; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-element';
+                element.textContent = terms[i % terms.length];
+                element.style.left = `${Math.random() * 100}%`;
+                element.style.top = `${Math.random() * 100}%`;
+                container.appendChild(element);
+                
+                gsap.to(element, {
+                    y: `${Math.random() * 100 - 50}`,
+                    x: `${Math.random() * 100 - 50}`,
+                    duration: 1 + Math.random() * 1,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: 'none'
+                });
+            }
+        });
+    </script>
+</body>
+</html>
